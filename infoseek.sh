@@ -66,7 +66,7 @@ USERNAME=''
 USERPASSTITLE=''
 USERPASS=''
 
-WELCOME='' # 'true' to display welcome message. Anything else to disable the message.
+WELCOME='true' # 'true' to display welcome message. Anything else to disable the message.
 
 
 # Advanced
