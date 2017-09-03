@@ -2,7 +2,7 @@
 clear
 ###
 #
-#	WOS InfoSEEK 1.0.0
+#	InfoSEEK 1.0.1 (WOS Edition)
 #
 #	Lead Author: Lee Hodson
 #	Donate: paypal.me/vr51
@@ -20,14 +20,16 @@ clear
 #
 #	USE TO:
 #
-#	  Query the World of Spectrum database.
+#	  Query the World of Spectrum API database.
 #		See http://live.worldofspectrum.org/using-the-api/basics for more information about the database.
+#
+#		This can be used as a generic program to work with API systems. Change the configs to adapt the program to a different API. Read the code comments for more details.
 #
 #
 #	TO RUN:
 #
+#		Set the API key and returned data FORMAT in the CONFIGURATIONS (the current configs will work fine for WoS)
 #	  Ensure the script is executable.
-#		Set the API key and returned data FORMAT in the CONFIGURATIONS
 #		Then, from the command line:
 #
 #			bash infoseek.sh or ./infoseek.sh
@@ -36,32 +38,62 @@ clear
 #
 #	LIMITATIONS
 #
-#		You are expected to have read the WoS API guide at http://live.worldofspectrum.org/using-the-api/basics
+#		The program is easy to use and fairly self explanatory.
+#		You are expected to have read the World of Spectrum API guide at http://live.worldofspectrum.org/using-the-api/basics
 #
 #
 ###
 
+###
+#
 # CONFIGURATIONS
+#
+###
+
+# General
+
+APIURI='http://live.worldofspectrum.org/infoseek/api' # Where to send API requests. No trailing slash.
+
+APIKEYTITLE='X-API-KEY' # The text before that announces the API KEY e.g. X-API-KEY=test
+APIKEY='test' # Your API key.
+
+FORMATTITLE='format' # The text that announces the format for the returned values e.g. 'format=php'
+FORMAT='php' # php, json, jsonp or xml.
+
+USERNAMETITLE=''
+USERNAME=''
+
+USERPASSTITLE=''
+USERPASS=''
+
+WELCOME='' # 'true' to display welcome message. Anything else to disable the message.
 
 
-
-
-API=test
-FORMAT=php # php, json, jsonp or xml
-
-
-
-
+# Advanced
 
 # NOTHING ELSE TO CONFIGURE
-
-# Locate Where We Are
-filepath="$(dirname "$(readlink -f "$0")")"
-# A Little precaution
-cd "$filepath"
-
-# API Options
-
+# 	Unless you know what you are doing....
+#
+# 	The API we want to access uses URI query strings to send information to a web server which then returns data based on the string variables passed.
+# 	A query string is the section that comes after a question mark in a URI e.g. example.com/?time=now
+#		Queries in query strings are sent in 'key=value' format e.g time=now or timezone=GMT or day=tomorrow.
+# 	Multiple queries can be sent in the same query string. Multiple queries are separated by an ampersand (&) e.g. example.com/?time=now&timezone=GMT
+#
+# 	This BASH program converts query strings into a menu format.
+#
+#			The key part of the query string is treated as a top level menu.
+#			The possible values for the key are treated as secondary level menus.
+#
+#		In the below configuration parameters the seekType is the parent key. The child parameters are the values that can be used with a parent key.
+#
+#		More key/value sets can be added, viz
+#
+#			1) Add a key to the seekType array (This is the parent key).
+#			2) create a new array that is the same name as the key (This is the child value array).
+#			3) Add values for the key into the child value arrary.
+#
+#		For example seekType=( publishers ) corresponds with child arrary publishers=( limit offset label )
+#
 
 # Parent (main menu)
 
@@ -83,6 +115,14 @@ protection_schemes=( EXPERIMENTAL limit offset id scheme slug )
 turn_types=( EXPERIMENTAL limit offset id status slug )
 
 
+
+
+# Locate Where We Are
+filepath="$(dirname "$(readlink -f "$0")")"
+# A Little precaution
+cd "$filepath"
+
+
 # Do some work...
 
 function infoseek_run() {
@@ -97,10 +137,14 @@ function infoseek_run() {
 	## Prompt for repositories and files to install
 	
 	printf "INFOSEEK\n\n"
-	printf "Retrieves data from The World of Spectrum database API. Not all of the API features work yet. API options listed with EXPERIMENTAL in line 0 are not yet active, or, if they are, they are experimentally so.\n\n"
-	printf "Multiple criteria can be searched together. Type SEND (or just press the Enter key) when ready to request information from the WoS archive.\n\n"
-	printf "Press any key to start your search.\n\n"
-	read something
+	
+	if test $WELCOME == 'true'; then
+		printf "Retrieve data from The World of Spectrum database API. Not all of the API features work yet. API options listed with EXPERIMENTAL as their final option are not yet active, or, if they are, they are experimentally so.\n\n"
+		printf "Multiple criteria can be searched together. Type SEND (or just press the Enter key with no option selected) when ready to request information from the WoS archive.\n\n"
+		printf "This welcome message can be disabled in the program's basic configurations (found near the top of the program file)\n\n"
+		printf "Press any key to start your search.\n\n"
+		read something
+	fi
 	
 	clear
 	infoseek_prompt "Choose a search category:" "${seekType[*]}"
@@ -136,8 +180,25 @@ function infoseek_run() {
 	
 	done
 	
-	# Build Query String	
-	query+=( "X-API-KEY=$API&format=$FORMAT" )
+	# Build Query String
+	
+	# Generic string
+	if test "$APIKEYTITLE"; then
+		query+=( "$APIKEYTITLE=$APIKEY" )
+	fi
+	
+	if test "$FORMATTITLE"; then
+		query+=( "&$FORMATTITLE=$FORMAT" )
+	fi
+	
+	if test "$USERNAMETITLE"; then
+		query+=( "&$USERNAMETITLE=$USERNAME" )
+	fi
+	
+	if test "$USERPASSTITLE"; then
+		query+=( "&$USERPASSTITLE=$USERPASS" )
+	fi
+	
 	c=1
 	while [ $c -lt ${#what[@]} ]; do
 	
@@ -151,9 +212,9 @@ function infoseek_run() {
 	query=( $(sed "s/ //g" <<< "${query[*]}") )
 
 	# FOR DEBUGGING
-	# echo "http://live.worldofspectrum.org/infoseek/api/${seekType[${what[0]}]}?$query"
+	# echo "$APIURI/${seekType[${what[0]}]}?$query"
 	# exit
-	info=$(wget -qO- "http://live.worldofspectrum.org/infoseek/api/${seekType[${what[0]}]}?$query")
+	info=$(wget -qO- "$APIURI/${seekType[${what[0]}]}?$query")
 	
 	# PARSE IT (some other time)
 	
@@ -179,7 +240,7 @@ function infoseek_prompt() {
   while true; do
 
 		# Question
-		printf "${1} (SEND to send request):\n\n"
+		printf "${1} (type SEND to send your request):\n\n"
 		
 		if test ${#2} -ne 0; then
 			# Options Available
@@ -196,7 +257,9 @@ function infoseek_prompt() {
 				let n=n+1
 			done
 
-			printf "\nChoose an option (0 to $(( n -1 ))) then press Enter (SEND to send request).\n"
+			printf "\nChoose an option (0 to $(( n -1 ))) then press Enter.\n"
+			printf "\nTo send your request type SEND with no option chosen or press the Enter key with no option selected.\n"
+			printf "\nPress Ctrl+C to quit the program at any time.\n"
 			
 			printf "\n"
 
@@ -211,7 +274,7 @@ function infoseek_prompt() {
 				return 0
 			;;
 
-			''|[sS][eE][nN][dD])
+			''|[S][E][N][D])
 				exit='n'
 				printf "\n"
 				return 1
@@ -230,7 +293,7 @@ function infoseek_prompt() {
 			
 			case $REPLY in
 
-			''|[sS][eE][nN][dD])
+			''|[S][E][N][D])
 				exit='n'
 				printf "\n"
 				return 1
