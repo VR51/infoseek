@@ -2,7 +2,7 @@
 clear
 ###
 #
-#	InfoSEEK 1.0.1 (WOS Edition)
+#	InfoSEEK 1.0.2 (WOS Edition)
 #
 #	Lead Author: Lee Hodson
 #	Donate: paypal.me/vr51
@@ -32,7 +32,7 @@ clear
 #	  Ensure the script is executable.
 #		Then, from the command line:
 #
-#			bash infoseek.sh or ./infoseek.sh
+#			bash infoseek.sh or ./infoseek.sh or just click the program file.
 #
 #		Follow the prompts.
 #
@@ -51,6 +51,7 @@ clear
 ###
 
 # General
+# Bad form to use capitals for non globals, I know, but, hey, I wrote this script and I care more about readability than I do about your arrogance.
 
 APIURI='http://live.worldofspectrum.org/infoseek/api' # Where to send API requests. No trailing slash.
 
@@ -66,7 +67,7 @@ USERNAME=''
 USERPASSTITLE=''
 USERPASS=''
 
-WELCOME='true' # 'true' to display welcome message. Anything else to disable the message.
+WELCOME123='true' # 'true' to display welcome message. Anything else to disable the message.
 
 
 # Advanced
@@ -76,13 +77,13 @@ WELCOME='true' # 'true' to display welcome message. Anything else to disable the
 #
 # 	The API we want to access uses URI query strings to send information to a web server which then returns data based on the string variables passed.
 # 	A query string is the section that comes after a question mark in a URI e.g. example.com/?time=now
-#		Queries in query strings are sent in 'key=value' format e.g time=now or timezone=GMT or day=tomorrow.
+#		Queries in query strings are sent in 'key name=value' format e.g time=now or timezone=GMT or day=tomorrow.
 # 	Multiple queries can be sent in the same query string. Multiple queries are separated by an ampersand (&) e.g. example.com/?time=now&timezone=GMT
 #
 # 	This BASH program converts query strings into a menu format.
 #
-#			The key part of the query string is treated as a top level menu.
-#			The possible values for the key are treated as secondary level menus.
+#			The key name part of the query string is treated as a top level menu in the program options.
+#			The possible values that correspond to a specific key are treated as secondary level menus.
 #
 #		In the below configuration parameters the seekType is the parent key. The child parameters are the values that can be used with a parent key.
 #
@@ -90,32 +91,32 @@ WELCOME='true' # 'true' to display welcome message. Anything else to disable the
 #
 #			1) Add a key to the seekType array (This is the parent key).
 #			2) create a new array that is the same name as the key (This is the child value array).
-#			3) Add values for the key into the child value arrary.
+#			3) Add values for the key into the child value array.
 #
 #		For example seekType=( publishers ) corresponds with child arrary publishers=( limit offset label )
 #
 
 # Parent (main menu)
 
-seekType=( publishers publisher magazines countries distribution_status distribution_status_types roles entry_types machine_types origin_types protection_schemes turn_types )
+seekType=( publishers publisher magazines countries distribution_status distribution_status_types roles entry_types machine_types origin_types protection_schemes turn_types quit_program )
 
 # Child (sub menus)
 
-publishers=( limit offset label_from label_from_slug label_from_became label_from_became_slug last_owner last_owner_slug distribution_status is_folded country publisher random )
-publisher=( EXPERIMENTAL limit offset id slug )
-magazines=( limit offset magazine slug language medium random )
-countries=( EXPERIMENTAL limit offset id slug )
-distribution_status=( EXPERIMENTAL limit offset id status slug )
-distribution_status_types=( EXPERIMENTAL limit offset id type slug )
-roles=( EXPERIMENTAL limit offset id type slug )
-entry_types=( EXPERIMENTAL limit offset id status slug )
-machine_types=( EXPERIMENTAL limit offset id status slug )
-origin_types=( EXPERIMENTAL limit offset id status slug )
-protection_schemes=( EXPERIMENTAL limit offset id scheme slug )
-turn_types=( EXPERIMENTAL limit offset id status slug )
+publishers=( limit offset label_from label_from_slug label_from_became label_from_became_slug last_owner last_owner_slug distribution_status is_folded country publisher random quit_program )
+publisher=( EXPERIMENTAL limit offset id slug quit_program )
+magazines=( limit offset magazine slug language medium random quit_program )
+countries=( EXPERIMENTAL limit offset id slug quit_program )
+distribution_status=( EXPERIMENTAL limit offset id status slug quit_program )
+distribution_status_types=( EXPERIMENTAL limit offset id type slug quit_program )
+roles=( EXPERIMENTAL limit offset id type slug quit_program )
+entry_types=( EXPERIMENTAL limit offset id status slug quit_program )
+machine_types=( EXPERIMENTAL limit offset id status slug quit_program )
+origin_types=( EXPERIMENTAL limit offset id status slug quit_program )
+protection_schemes=( EXPERIMENTAL limit offset id scheme slug quit_program )
+turn_types=( EXPERIMENTAL limit offset id status slug quit_program )
 
 
-
+# NO USER SERVICEABLE PARTS BELOW HERE
 
 # Locate Where We Are
 filepath="$(dirname "$(readlink -f "$0")")"
@@ -131,19 +132,20 @@ function infoseek_run() {
 	
 	tty -s
 	if test "$?" -ne 0 ; then
-		infoseek_run
+		infoseek_launch
 	fi
 	
 	## Prompt for repositories and files to install
 	
 	printf "INFOSEEK\n\n"
 	
-	if test $WELCOME == 'true'; then
-		printf "Retrieve data from The World of Spectrum database API. Not all of the API features work yet. API options listed with EXPERIMENTAL as their final option are not yet active, or, if they are, they are experimentally so.\n\n"
+	if test $WELCOME123 == 'true'; then
+		printf "Retrieve data from The World of Spectrum database API. Not all of the API features work yet. API options listed with EXPERIMENTAL as their first option are not yet active, or, if they are, they are experimentally so.\n\n"
 		printf "Multiple criteria can be searched together. Type SEND (or just press the Enter key with no option selected) when ready to request information from the WoS archive.\n\n"
-		printf "This welcome message can be disabled in the program's basic configurations (found near the top of the program file)\n\n"
+		printf "This welcome message will not show the next time you run this program.\n\n"
 		printf "Press any key to start your search.\n\n"
 		read something
+		sed -i "s/WELCOME123=''/WELCOME123=''/" "$0"
 	fi
 	
 	clear
@@ -156,8 +158,7 @@ function infoseek_run() {
 	fi
 	
 	clear
-	title=${seekType[${what[0]}]}
-	title=( $(sed "s/_/ /g" <<< "$title") )
+	title="${seekType[${what[0]}]//_/ }"
 	printf "${title^^}\n\n"
 	
 	
@@ -180,9 +181,9 @@ function infoseek_run() {
 	
 	done
 	
-	# Build Query String
+	## Build Query String
 	
-	# Generic string
+	# Generic string part built from user configs
 	if test "$APIKEYTITLE"; then
 		query+=( "$APIKEYTITLE=$APIKEY" )
 	fi
@@ -204,15 +205,18 @@ function infoseek_run() {
 	
 		query+=( "&${seekInfoArray[${what[$c]}]}=" )
 		let c=c+1
-		query+=( "${what[$c]}" )
+		infoseek_rawurlencode "${what[$c]}"
+		query+=( "${ENCODED}" )
 		let c=c+1
 		
 	done
 	
-	query=( $(sed "s/ //g" <<< "${query[*]}") )
+	# Custom string part built from user input
+	query=( $(sed "s/ //g" <<< "${query[*]}") ) # Remove whitespace
 
 	# FOR DEBUGGING
 	# echo "$APIURI/${seekType[${what[0]}]}?$query"
+	# read something
 	# exit
 	info=$(wget -qO- "$APIURI/${seekType[${what[0]}]}?$query")
 	
@@ -226,6 +230,7 @@ function infoseek_run() {
 	#info=$(sed "s/=>/|/g" <<< "$info")
 	
 	echo "$info"
+	read something
 
 	exit 0
 
@@ -240,7 +245,7 @@ function infoseek_prompt() {
   while true; do
 
 		# Question
-		printf "${1} (type SEND to send your request):\n\n"
+		printf "${1}:\n\n"
 		
 		if test ${#2} -ne 0; then
 			# Options Available
@@ -248,7 +253,7 @@ function infoseek_prompt() {
 			n=0
 			for i in ${2}; do
 				i=( $(sed "s/_/ /g" <<< "$i") )
-				if test ${child[$n]} ;then
+				if test "${child[$n]}"; then
 					string="[$n] ${i[*]^} (${child[$n]})" # [Number] Criteria (Current Value)
 				else
 					string="[$n] ${i[*]^}" # [Number] Criteria
@@ -258,7 +263,7 @@ function infoseek_prompt() {
 			done
 
 			printf "\nChoose an option (0 to $(( n -1 ))) then press Enter.\n"
-			printf "\nTo send your request type SEND with no option chosen or press the Enter key with no option selected.\n"
+			printf "\nTo send your request press the Enter key with no option selected or text entered.\n"
 			printf "\nPress Ctrl+C to quit the program at any time.\n"
 			
 			printf "\n"
@@ -268,16 +273,24 @@ function infoseek_prompt() {
 			
 			case $REPLY in
 			
+			$(( n - 1 )))
+				exit 0
+			;;
+			
 			[0-9]|[0-9][0-9])
 				what+=( "$REPLY" )
 				printf "\n"
 				return 0
 			;;
 
-			''|[S][E][N][D])
+			'')
 				exit='n'
 				printf "\n"
 				return 1
+			;;
+			
+			[qQ])
+				exit 0
 			;;
 
 			*)
@@ -292,8 +305,8 @@ function infoseek_prompt() {
 			read REPLY
 			
 			case $REPLY in
-
-			''|[S][E][N][D])
+			
+			'')
 				exit='n'
 				printf "\n"
 				return 1
@@ -315,6 +328,41 @@ function infoseek_prompt() {
   
 }
 
+## Encode search strings
+
+function infoseek_rawurlencode() {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  ENCODED="${encoded}"
+}
+
+## launch terminal
+
+function infoseek_launch() {
+
+		terminal=( konsole gnome-terminal x-terminal-emulator xdg-terminal terminator urxvt rxvt Eterm aterm roxterm xfce4-terminal termite lxterminal xterm )
+		for i in ${terminal[@]}; do
+			if command -v $i > /dev/null 2>&1; then
+				exec $i -e "$0"
+				# break
+			else
+				printf "\nUnable to automatically determine the correct terminal program to run e.g Console or Konsole. Please run this program from the command line.\n"
+				read something
+				exit 1
+			fi
+		done
+}
 
 ## Boot
 
