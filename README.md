@@ -21,7 +21,9 @@ Or
 
 ```./infoseek.sh```
 
-- Read the brief welcome message. The message can be disabled in program's basic configs near the top of the script code.
+Or just click the program file. It should spawn a console/terminal.
+
+- Read the brief welcome message. The message will display on first run of a new version only -- it is set to autdeactivate itself.
 - Select a search category (0 to 11)
 - Select a search criteria (0 to 12)
 - Enter the search query (just type away)
@@ -54,6 +56,12 @@ The plan is to add:
 This script will be updated as WoS adds new criteria and features to the API.
 
 # Changelog
+
+1.0.2
+
+- Made the welcome message deactivate itself after first program run. Edit user configs for WELCOME123='' to WELCOME123='true' to reactivate the message.
+- Added URL encoder for the querystring part created via user respnoses.
+- Made a few other minor code changes.
 
 1.0.1
 
